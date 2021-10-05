@@ -9,22 +9,160 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+library(tidyverse)
+library(reticulate)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+reticulate::use_condaenv("~/../miniforge3/")
+reticulate::py_config()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Load data
+
+```{r}
+nurses <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-05/nurses.csv') %>%
+  filter(Year > 1998)
+```
+
+```{python}
+import pandas as pd
+
+nurses_py = pd.read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-05/nurses.csv')
+
+nurses_py = nurses_py.loc[nurses_py["Year"] > 1998]
+```
+
+# Descriptives
+
+```{r}
+nurses %>%
+  count(State) %>%
+  pull(State)
+```
+
+```{python}
+nurses_py["State"].unique()
+```
+
+```{python}
+nurses_py["State"].value_counts()
+```
+
+## Total RN by year
+
+```{r}
+nurses_total_by_year <- nurses %>%
+  group_by(Year) %>%
+  summarize(total_rn = sum(`Total Employed RN`, na.rm = TRUE))
+nurses_total_by_year
+```
+
+```{python}
+nurses_total_by_year_py = (nurses_py
+  .groupby("Year")
+  .agg(total_rn = ("Total Employed RN", "sum"))
+  .reset_index()
+)
+nurses_total_by_year_py
+```
+
+
+### Plot Total RN by Year
+
+```{r}
+ggplot(nurses_total_by_year, aes(x = Year, y = total_rn)) + geom_line()
+```
+
+```{python}
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+sns.lineplot(data=nurses_total_by_year_py, x="Year", y="total_rn")
+plt.show()
+```
+
+## Porportion of RNs
+
+```{r}
+nurses_prop <- nurses %>%
+  mutate(prop_rn_total = `Total Employed RN` / `Yearly Total Employed (State)_Aggregate`,
+         prop_rn_health = `Total Employed RN` / `Total Employed (Healthcare, State)_Aggregate`
+         ) %>%
+  select(State, Year,
+         `Total Employed RN`,
+         `Yearly Total Employed (State)_Aggregate`,
+         `Total Employed (Healthcare, State)_Aggregate`,
+         prop_rn_total,
+         prop_rn_health) %>%
+  arrange(-prop_rn_health)
+```
+
+```{r}
+ggplot(nurses_prop, aes(x = Year, y = prop_rn_health)) + geom_line() + facet_wrap(~State)
+```
+
+```{r}
+ggplot(nurses_prop, aes(x = Year, y = prop_rn_total)) + geom_line() + facet_wrap(~State)
+```
+
+```{r}
+nurses_prop %>%
+  filter(State == "New York") %>%
+  View()
+```
+
+```{r} 
+# nurses_prop <- nurses_prop %>%
+#   mutate(State = fct_reorder2(State, Year, prop_rn_health, .desc = TRUE))
+```
+
+```{r}
+ggplot(nurses_prop, aes(x = Year, y = prop_rn_health)) +
+  geom_line() +
+  facet_wrap(~State) +
+  theme_minimal() + 
+  scale_x_continuous(
+    labels = c("'00", "'10", "'20"),
+    breaks = c(2000, 2010, 2020))
+```
+
+
+```{python}
+nurses_prop = nurses_py.assign(
+  prop_rn_total=nurses_py['Total Employed RN'] / nurses_py['Yearly Total Employed (State)_Aggregate'],
+  prop_rn_health=nurses_py['Total Employed RN'] / nurses_py['Total Employed (Healthcare, State)_Aggregate']
+)
+
+nurses_prop = nurses_prop[["State", "Year", "Total Employed RN", "Yearly Total Employed (State)_Aggregate",
+                       "Total Employed (Healthcare, State)_Aggregate",
+                       "prop_rn_total",
+                       "prop_rn_health"]]
+                       
+nurses_prop = nurses_prop.sort_values(["State"])
+
+nurses_prop
+```
+
+
+```{python}
+g = sns.FacetGrid(nurses_prop, col="State", col_wrap=8)
+g.map(sns.lineplot, x="Year", y="prop_rn_health")
+plt.show()
+```
+
+```{python}
+sns.set(font_scale=0.3)
+sns.relplot(
+      data=nurses_prop,
+      x="Year", y="prop_rn_health",
+      col="State",
+      col_wrap = 8,
+      kind="line",
+      facet_kws={"margin_titles": False}
+  )
+  
+plt.show()
+
+```
