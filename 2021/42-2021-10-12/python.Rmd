@@ -1,0 +1,102 @@
+---
+title: "Untitled"
+author: "Daniel Chen"
+date: "10/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(reticulate)
+
+reticulate::use_condaenv("~/../miniforge3/")
+reticulate::py_config()
+```
+
+
+```{python}
+import pandas as pd
+import geopandas as gp
+import matplotlib.pyplot as plt
+```
+
+```{python}
+consumption = pd.read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-12/fish-and-seafood-consumption-per-capita.csv')
+```
+
+```{python}
+world = gp.read_file(gp.datasets.get_path('naturalearth_lowres'))
+```
+
+```{python}
+# world.plot()
+# plt.show()
+```
+
+```{python}
+world = world[(world.name!="Antarctica")]
+```
+
+```{python}
+world.plot()
+plt.show()
+```
+
+```{python}
+world = (world
+    .merge(consumption,
+           left_on="iso_a3",
+           right_on="Code")
+    .rename({'Fish, Seafood- Food supply quantity (kg/capita/yr) (FAO, 2020)': "supply"},
+            axis="columns")
+)
+
+```
+
+```{python}
+world_sub = world.loc[world["Year"] == 2017]
+
+fig, ax = plt.subplots(1, 1)
+world_sub.plot(column='supply', ax=ax, legend=True)
+fig.savefig("2021/42-2021-10-12/python.png")
+```
+
+```{python}
+def init_func():
+    return world.plot()
+
+def animate(year):
+    world_sub = world.loc[world["Year"] == year]
+    ax = world_sub.plot(column='supply', legend=True)
+    return ax
+
+```
+
+```{python}
+animate(2000)
+```
+
+
+```{python}
+from matplotlib.animation import FuncAnimation
+
+fig, ax = plt.subplots(1, 1)
+world_sub = world.loc[world["Year"] == 1961]
+world_sub.plot(column='supply', ax=ax, legend=True)
+
+anim = FuncAnimation(fig, animate, frames=world["Year"].unique(), init_func = init_func, interval=10, blit=True)
+anim.save('2021/42-2021-10-12/python_animation.mp4', fps=6, extra_args=['-vcodec', 'libx264'])
+plt.show()
+
+```
+
+```{python}
+import numpy as np
+fig = plt.figure()
+ax = plt.axes(xlim=(0, 2), ylim=(-2, 2))
+line, = ax.plot([], [], lw=2)
+
+plt.show()
+```
+

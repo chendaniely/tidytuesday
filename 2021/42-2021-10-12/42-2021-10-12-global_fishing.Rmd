@@ -1,0 +1,130 @@
+---
+title: "Untitled"
+author: "Daniel Chen"
+date: "10/11/2021"
+output: html_document
+---
+
+help from:
+
+- https://r-spatial.org/r/2018/10/25/ggplot2-sf.html
+- https://gganimate.com/
+
+```{r}
+library(tidyverse)
+
+farmed <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-12/aquaculture-farmed-fish-production.csv')
+captured_vs_farmed <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-12/capture-fisheries-vs-aquaculture.csv')
+captured <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-12/capture-fishery-production.csv')
+consumption <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-12/fish-and-seafood-consumption-per-capita.csv')
+stock <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-12/fish-stocks-within-sustainable-levels.csv')
+fishery <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-12/global-fishery-catch-by-sector.csv')
+production <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-12/seafood-and-fish-production-thousand-tonnes.csv')
+
+```
+
+```{r}
+captured %>%
+  inner_join(captured_vs_farmed, by = c("Entity", "Code", "Year"))
+```
+
+```{r}
+fish_country_level <- captured_vs_farmed %>%
+  inner_join(consumption, by = c("Entity", "Code", "Year")) %>%
+  inner_join(production, by = c("Entity", "Code", "Year")) %>%
+  dplyr::rename(
+    "supply" = "Fish, Seafood- Food supply quantity (kg/capita/yr) (FAO, 2020)"
+  ) %>%
+  dplyr::select(Entity, Code, Year, supply)
+```
+
+```{r}
+fish_country_level %>%
+  distinct(Entity)
+```
+
+```{r}
+library(rnaturalearth)
+```
+
+
+```{r}
+library("ggplot2")
+theme_set(theme_bw())
+library("sf")
+
+library("rnaturalearthdata")
+library(rgeos)
+
+world <- ne_countries(scale = "medium", returnclass = "sf") %>%
+  filter(!(is.na(iso_a3)))
+class(world)
+
+```
+
+```{r}
+
+```
+
+fish_country_level
+ %>%
+  dplyr::select(Entity, Code, Year, supply)
+
+```{r}
+world_fish <- world  %>%
+  dplyr::right_join(consumption, by = c("iso_a3" = "Code")) %>%
+  dplyr::rename(
+    "supply" = "Fish, Seafood- Food supply quantity (kg/capita/yr) (FAO, 2020)"
+  ) %>%
+  dplyr::select(Entity, iso_a3, Year, supply, geometry)
+
+stopifnot(nrow(world_fish) == nrow(consumption))
+```
+
+```{r}
+world_fish_na <- world_fish %>%
+  tidyr::drop_na()
+  
+```
+
+
+```{r}
+world_fish_2013 <- world_fish %>%
+  filter(Year == 2000)
+```
+
+```{r}
+world_fish_na <- world_fish %>%
+  tidyr::drop_na() %>%
+  #dplyr::filter(Year %in% c(2010:2013)) %>%
+  {.}
+```
+
+
+
+```{r}
+library(gganimate)
+
+anim <- ggplot(data = world_fish_na) +
+  geom_sf(aes(fill = log(supply))) +
+  scale_fill_viridis_c(option = "plasma", limits = c(-4, 6)) +
+  labs(title = 'Year: {as.integer(frame_time)}') +
+  transition_time(Year) +
+  ease_aes('linear') +
+  NULL
+
+# animate()
+# 
+# file_renderer(dir = here::here("2021/42-2021-10-12"),
+#               prefix = "gganim_plot",
+#               overwrite = TRUE)
+
+anim_save(here::here("2021/42-2021-10-12/animation.gif"),
+          anim,
+          fps = 5,
+          duration = 10,
+          end_pause = 1,
+          rewind = TRUE,
+          renderer = gifski_renderer()
+)
+```
