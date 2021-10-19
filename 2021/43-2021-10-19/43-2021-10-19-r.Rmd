@@ -1,0 +1,126 @@
+---
+title: "Untitled"
+author: "Daniel Chen"
+date: "10/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+pumpkins <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-19/pumpkins.csv')
+
+```
+
+```{r}
+pumpkins %>%
+  dplyr::count(country) %>%
+  dplyr::arrange(-n)
+```
+
+```{r}
+pumpkins %>%
+  dplyr::count(grower_name) %>%
+  dplyr::arrange(-n)
+```
+
+```{r}
+pumpkins %>%
+  dplyr::count(country, grower_name) %>%
+  dplyr::arrange(-n)
+```
+
+```{r}
+cleaned <- pumpkins %>%
+  tidyr::separate(id, into = c("year", "type"), sep = "-") %>%
+  dplyr::mutate(place = as.numeric(place),
+                weight_lbs = as.numeric(weight_lbs),
+                year = as.numeric(year)
+  ) %>%
+  dplyr::filter(!is.na(place)) %>%
+  #dplyr::select(year, type, place, weight_lbs, country) %>%
+  {.}
+```
+
+
+```{r}
+cleaned %>%
+  dplyr::count(type) %>%
+  dplyr::arrange(-n)
+```
+
+```{r}
+cleaned %>%
+  dplyr::group_by(year, type) %>%
+  dplyr::filter(place == 1) %>%
+  dplyr::ungroup()
+```
+
+```{r}
+# want to look at max weight because not all 1st place winners have a weight_lbs value
+winners <- cleaned %>%
+  dplyr::group_by(year, type) %>%
+  dplyr::filter(weight_lbs == max(weight_lbs, na.rm = TRUE)) %>%
+  dplyr::ungroup()
+```
+
+```{r}
+cleaned %>%
+  dplyr::arrange(year, type, place, weight_lbs) %>%
+  dplyr::filter(year == 2013, type == "S") %>%
+  View
+```
+
+```{r}
+winners <- winners %>%
+  dplyr::filter(type == "T")
+```
+
+```{r}
+tan <- cleaned %>%
+  filter(str_detect(grower_name, "Ho, Tan"))
+```
+
+```{r}
+winners <- winners %>%
+  dplyr::bind_rows(tan) %>%
+  dplyr::mutate(
+    type = dplyr::case_when(
+      type == "F" ~ "Tan's Field Pumpkins",
+      type == "P" ~ "Tan's Pumpkins",
+      type == "S" ~ "Tan's Squash",
+      type == "T" ~ "Tomato",
+      TRUE ~ type
+    )
+  )
+```
+
+
+```{r}
+g <- ggplot(winners, aes(x = year, y = weight_lbs, color = type, size = weight_lbs)) +
+  geom_line() +
+  scale_x_continuous(
+    name = "Year",
+    breaks = seq(2013, 2021, 3),
+  ) +
+  scale_y_continuous(
+    name = "Weight (Lbs)",
+    sec.axis = sec_axis(trans =~ . / 2.205, name="Weight (Kg)")
+  ) +
+  theme_minimal() +
+  labs(title = "Tan vs Tomatos") +
+  NULL
+```
+
+```{r}
+g
+```
+
+```{r}
+ggsave(filename = here::here("2021/43-2021-10-19/r.png"))
+```
+

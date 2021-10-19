@@ -1,0 +1,58 @@
+---
+title: "Untitled"
+author: "Daniel Chen"
+date: "10/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(reticulate)
+
+reticulate::use_condaenv("~/../miniforge3/")
+reticulate::py_config()
+```
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+pumpkins = pd.read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-19/pumpkins.csv')
+
+year_type_split = pumpkins.id.str.split("-")
+
+cleaned = (pumpkins
+    .assign(
+      year = pd.to_numeric(year_type_split.str.get(0), errors="coerce"),
+      type = year_type_split.str.get(1),
+      place = pd.to_numeric(pumpkins.place, errors="coerce"),
+      weight_lbs = pd.to_numeric(pumpkins.weight_lbs, errors="coerce")
+    )
+)
+
+cleaned = cleaned.loc[~pd.isna(cleaned.place)]
+
+winners = (cleaned
+    .groupby(["year", "type"])
+    ['weight_lbs'].max()
+    .reset_index()
+)
+
+winners = winners.loc[winners.type == "T"]
+
+tan = (cleaned
+    .loc[cleaned.grower_name.str.contains("Ho, Tan")]
+    [['year', 'type', 'weight_lbs']]
+)
+
+winners = pd.concat([winners, tan])
+
+sns.lineplot(data=winners, x="year", y="weight_lbs", hue="type")
+plt.show()
+
+fig, ax = plt.subplots(1, 1)
+sns.lineplot(data=winners, x="year", y="weight_lbs", hue="type", ax = ax)
+plt.savefig("2021/43-2021-10-19/py.png")
+```
