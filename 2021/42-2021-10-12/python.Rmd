@@ -66,28 +66,36 @@ fig.savefig("2021/42-2021-10-12/python.png")
 def init_func():
     return world.plot()
 
-def animate(year):
+def animate(year, ax):
+    ax.cla()
     world_sub = world.loc[world["Year"] == year]
-    ax = world_sub.plot(column='supply', legend=True)
-    return ax
+    world_sub.plot(column='supply', legend=True)
 
 ```
 
 ```{python}
-animate(2000)
+#animate(2000)
 ```
 
 
 ```{python}
 from matplotlib.animation import FuncAnimation
 
-fig, ax = plt.subplots(1, 1)
-world_sub = world.loc[world["Year"] == 1961]
-world_sub.plot(column='supply', ax=ax, legend=True)
+#fig, ax = plt.subplots(1, 1)
+#world_sub = world.loc[world["Year"] == 1961]
+#world_sub.plot(column='supply', ax=ax, legend=True)
 
-anim = FuncAnimation(fig, animate, frames=world["Year"].unique(), init_func = init_func, interval=10, blit=True)
+fig = plt.figure(figsize=(14.4, 6.4))
+ax = fig.gca()
+
+anim = FuncAnimation(fig, animate,
+                     frames=world["Year"].unique(),
+                     interval=10,
+                     repeat=True,
+                     fargs=(ax))
+plt.close()
 anim.save('2021/42-2021-10-12/python_animation.mp4', fps=6, extra_args=['-vcodec', 'libx264'])
-plt.show()
+
 
 ```
 
