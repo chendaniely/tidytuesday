@@ -112,7 +112,7 @@ g <- ggplot(winners, aes(x = year, y = weight_lbs, color = type, size = weight_l
     sec.axis = sec_axis(trans =~ . / 2.205, name="Weight (Kg)")
   ) +
   theme_minimal() +
-  labs(title = "Tan vs Tomatos") +
+  labs(title = "Tan vs Tomatoes") +
   NULL
 ```
 
@@ -121,6 +121,6 @@ g
 ```
 
 ```{r}
-ggsave(filename = here::here("2021/43-2021-10-19/r.png"))
+ggsave(filename = here::here("2021/43-2021-10-19/r.png"),  bg = "white")
 ```
 
