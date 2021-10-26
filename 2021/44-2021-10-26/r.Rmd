@@ -1,0 +1,104 @@
+---
+title: "Untitled"
+author: "Daniel Chen"
+date: "10/25/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+ultra_rankings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-26/ultra_rankings.csv')
+race <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-26/race.csv')
+```
+
+```{r}
+race %>%
+  dplyr::count(country, sort = TRUE)
+```
+
+```{r}
+race %>%
+  dplyr::count(participation, sort = TRUE)
+```
+
+```{r}
+hist(race$distance)
+```
+
+```{r}
+race_clean <- race %>%
+  dplyr::filter(distance != 0) %>%
+  dplyr::mutate(
+    participation = dplyr::case_when(
+      stringr::str_to_lower(participation) == "solo" ~ "solo",
+      TRUE ~ participation
+    )
+  )
+```
+
+```{r}
+race_clean %>%
+  dplyr::group_by(participation) %>%
+  dplyr::summarize(
+    n_races = n(),
+    avg_dist = mean(distance),
+    avg_n = mean(participants))
+```
+
+```{r}
+ggplot(race_clean, aes(x = distance, y = aid_stations)) +
+  geom_point()
+```
+
+```{r}
+ggplot(race_clean, aes(x = participants,
+                       y = aid_stations)) +
+  geom_hex() +
+  xlim(0, 500)
+```
+
+```{r}
+ggplot(race_clean, aes(x = distance,
+                       y = elevation_gain)) +
+  geom_hex() +
+  xlim(150, NA) +
+  theme_minimal()
+```
+
+
+```{r}
+rank_na <- ultra_rankings %>%
+  group_by(rank) %>%
+  summarise(sum_na = sum(is.na(time), na.rm = TRUE))
+```
+
+```{r}
+ggplot(rank_na, aes(x = rank, y = sum_na)) +
+  geom_col() +
+  labs(
+    title = "Number of Missing Times per Rank",
+    subtitle = "Data points people from TidyTuesday dropped.",
+    x = "Rank",
+    y = "Number of Missing Times"
+  ) +
+  theme_minimal()
+```
+
+
+
+```{r}
+# race_people <- race_clean %>%
+#   dplyr::left_join(ultra_rankings, by = "race_year_id")
+```
+
+```{r}
+# ggplot(race_people, aes(x = distance,
+#                         y = age)) +
+#   geom_point()
+```
+

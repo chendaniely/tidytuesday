@@ -1,0 +1,41 @@
+---
+title: "Untitled"
+author: "Daniel Chen"
+date: "10/25/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(reticulate)
+
+reticulate::use_condaenv("~/../miniforge3/")
+reticulate::py_config()
+```
+
+```{python}
+import pandas as pd
+from plotnine import ggplot, geom_bar, aes, theme_minimal, labs, ggtitle, xlab, ylab, theme_xkcd
+import matplotlib.pyplot as plt
+
+ultra_rankings = pd.read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-10-26/ultra_rankings.csv')
+
+rank_na = (ultra_rankings
+    .groupby("rank")
+    .agg(sum_na = ("time", lambda x: pd.isna(x).sum()))
+    .reset_index()
+)
+
+(ggplot(rank_na, aes(x="rank", y="sum_na"))
+    + geom_bar(stat="identity")
+    + ggtitle(title = "Number of Missing Times per Rank")
+    + xlab("Rank")
+    + ylab("Number of missing times")
+    + theme_minimal()
+    + theme_xkcd()
+)
+plt.show()
+
+```
+
